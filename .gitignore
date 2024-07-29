@@ -6,10 +6,12 @@ config.py
 # cache
 **/__pycache__/
 *.pyc
-
+/tmp
 
 #test file
 /test
 
 #Models
 **/Models/
+
+/sensevoice
