@@ -1,0 +1,15 @@
+# log and config
+*.log
+config.py
+
+
+# cache
+**/__pycache__/
+*.pyc
+
+
+#test file
+/test
+
+#Models
+**/Models/
