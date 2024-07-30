@@ -2,7 +2,7 @@ import numpy as np
 import sys
 import os
 import ollama
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Generator
 
 
 # Add the `src` directory to sys.path
@@ -48,32 +48,41 @@ def get_chat_response(model_name, messages):
 
 
 def model_chat(
-    content: str, history: Optional[History], model_name: str
-) -> Tuple[str, str, History]:
+    content: str, history: Optional[List[Tuple[str, str]]], model_name: str
+) -> Generator[
+    Tuple[Optional[List[Tuple[str, str]]], Optional[str], Optional[str]], None, None
+]:
+    try:
+        if history is None:
+            history = []
+        system = default_system_1
+        messages = history_to_messages(history, system)
+        messages.append({"role": "user", "content": content})
 
-    if history is None:
-        history = []
-    system = default_system_1
-    messages = history_to_messages(history, system)
-    messages.append({"role": "user", "content": content})
-    # print("Current messages:", messages)
+        try:
+            response = ollama.chat(model=model_name, messages=messages)
+        except ollama.ResponseError as e:
+            yield None, None, f"Ollama chat error: {str(e)}"
+            return
 
-    # chat with ollama
-    response = ollama.chat(model=model_name, messages=messages)
-    # check is ollama response is correct
-    # print("Ollama response:", response)
-    content = response["message"]["content"]
-    # print("ollama response content:", content)
+        if (
+            not isinstance(response, dict)
+            or "message" not in response
+            or "content" not in response["message"]
+        ):
+            yield None, None, "Unexpected response format from Ollama"
+            return
 
-    system, history = messages_to_history(
-        messages + [{"role": "assistant", "content": content}]
-    )
+        content = response["message"]["content"]
 
-    # print(f"system Model Chat: {system}")
-    # print(f"history Model Chat: {history}")
+        _, history = messages_to_history(
+            messages + [{"role": "assistant", "content": content}]
+        )
 
-    # return content, history
-    yield history, content,
+        yield history, content, None
+
+    except Exception as e:
+        yield None, None, f"Unexpected error in model_chat: {str(e)}"
 
 
 # Example usage of the imported method
